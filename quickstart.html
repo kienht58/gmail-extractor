@@ -107,7 +107,7 @@
               request = gapi.client.gmail.users.messages.list({
                 'userId': 'me',
                 'pageToken': nextPageToken,
-
+                'q': 'service@intl.paypal.com'
               });
 
               getPageOfMessages(request, result);
@@ -129,12 +129,29 @@
                   batches = batches.concat([batch])
               }
 
+              let index = 0
               batches.forEach(function(batch, idx) {
                 setTimeout(function() {
                   batch.execute(function(resp) {
-                    console.log(resp)
-                  })
-                }, idx*5000)
+                    index = index + 1;
+                    for(mail in resp) {
+                      let headers = resp[mail].result.payload.headers;
+                      headers.forEach(function(header) {
+                        if(header.name === 'Reply-To') {
+                          let email = header.value.match(/[a-zA-Z0-9-_.]+@[a-zA-Z0-9-_.]+/img);
+                          if(email) {
+                            console.log(email)
+                            mailList = mailList.concat(email);
+                            resultDiv.textContent = mailList.length + '' + (mailList.length > 1 ? " mails have been saved!" : " mail has been saved!");
+                          }
+                        }
+                      })
+                    }
+                    if(index === batches.length - 1) {
+                      noticeDiv.style.display = 'block';
+                    }
+                  });
+                }, idx*1000);
               })
             }
           })
@@ -142,6 +159,7 @@
 
         var initialRequest = gapi.client.gmail.users.messages.list({
           'userId': 'me',
+          'q': 'service@intl.paypal.com'
         });
 
         getPageOfMessages(initialRequest, []);
