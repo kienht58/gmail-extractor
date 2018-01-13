@@ -107,23 +107,41 @@
               request = gapi.client.gmail.users.messages.list({
                 'userId': 'me',
                 'pageToken': nextPageToken,
-                'q': 'service@intl.paypal.com'
+
               });
 
               getPageOfMessages(request, result);
             } else {
-              let total = result.length
-              for(let i = 0; i < total; i++) {
-                getMessage(result[i].id, i, total);
+              let batches = [];
 
+              for(let i = 0; i < result.length; i+= 50) {
+                let batch = gapi.client.newBatch();
+                let hasResult = false
+                for(let j = i; j < i + 50; j++)
+                  if(result[j])
+                    if(result[j].id) {
+                      hasResult = true
+                      batch.add(getMessage(result[j].id))
+                    }
+                  else
+                    break
+                if(hasResult)
+                  batches = batches.concat([batch])
               }
+
+              batches.forEach(function(batch, idx) {
+                setTimeout(function() {
+                  batch.execute(function(resp) {
+                    console.log(resp)
+                  })
+                }, idx*5000)
+              })
             }
           })
         }
 
         var initialRequest = gapi.client.gmail.users.messages.list({
           'userId': 'me',
-          'q': 'service@intl.paypal.com'
         });
 
         getPageOfMessages(initialRequest, []);
@@ -132,25 +150,13 @@
       /**
        * Get content of a message by id
        */
-      function getMessage(messageId, current, total) {
+      function getMessage(messageId) {
         var request = gapi.client.gmail.users.messages.get({
           'userId': 'me',
           'id': messageId
         })
-        request.execute(function(resp) {
-          let customer = resp.payload.headers.forEach(function(header) {
-            if(header.name === 'Reply-To') {
-              let email = header.value.match(/[a-zA-Z0-9-_.]+@[a-zA-Z0-9-_.]+/img);
-              if(email) {
-                mailList = mailList.concat(email);
-                resultDiv.textContent = mailList.length + '' + (mailList.length > 1 ? " mails have been saved!" : " mail has been saved!");
-              }
-            }
-            if(current === total - 1) {
-              noticeDiv.style.display = 'block';
-            }
-          })
-        })
+
+        return request
       }
 
       /**
@@ -163,7 +169,7 @@
         });
 
         let encodedUri = encodeURI(csvContent);
-        window.open(encodedUri);
+        window.location.href = encodedUri
       }
 
     </script>
