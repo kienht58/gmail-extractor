@@ -136,7 +136,6 @@
                     index = index + 1;
                     for(mail in resp) {
                       let headers = resp[mail].result.payload.headers;
-                      console.log(headers)
                       headers.forEach(function(header) {
                         if(header.name === 'Reply-To') {
                           let email = header.value.match(/[a-zA-Z0-9-_.]+@[a-zA-Z0-9-_.]+/img);
@@ -146,6 +145,8 @@
                           }
                         }
                       })
+
+                      console.log(resp[mail].result)
                     }
                     if(index === batches.length - 1) {
                       noticeDiv.style.display = 'block';
